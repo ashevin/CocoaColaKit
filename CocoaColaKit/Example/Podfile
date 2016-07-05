@@ -1,0 +1,6 @@
+use_frameworks!
+target 'CocoaColaKit_Tests' do
+  pod 'CocoaColaKit', :path => '../'
+  
+  
+end

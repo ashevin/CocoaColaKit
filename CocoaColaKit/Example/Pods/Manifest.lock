@@ -1,0 +1,16 @@
+PODS:
+  - CocoaColaKit (0.1.0)
+
+DEPENDENCIES:
+  - CocoaColaKit (from `../`)
+
+EXTERNAL SOURCES:
+  CocoaColaKit:
+    :path: ../
+
+SPEC CHECKSUMS:
+  CocoaColaKit: a6413b58382df092eb73ff15c132d781dcfdd76a
+
+PODFILE CHECKSUM: 13d9641f304a694df943b7f3f29e25c4487cb3c9
+
+COCOAPODS: 1.0.1
