@@ -10,6 +10,9 @@
 		821BAC5F1D45D30C00E2990A /* CocoaColaKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 821BAC5E1D45D30C00E2990A /* CocoaColaKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		821BAC661D45D30C00E2990A /* CocoaColaKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 821BAC5B1D45D30C00E2990A /* CocoaColaKit.framework */; };
 		821BAC6B1D45D30C00E2990A /* CocoaColaKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821BAC6A1D45D30C00E2990A /* CocoaColaKitTests.swift */; };
+		821BAC7A1D45D61700E2990A /* NSLayoutConstraint+extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821BAC761D45D61700E2990A /* NSLayoutConstraint+extensions.swift */; };
+		821BAC7B1D45D61700E2990A /* TileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821BAC781D45D61700E2990A /* TileView.swift */; };
+		821BAC7C1D45D61700E2990A /* TileViewLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821BAC791D45D61700E2990A /* TileViewLayout.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,6 +32,9 @@
 		821BAC651D45D30C00E2990A /* CocoaColaKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CocoaColaKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		821BAC6A1D45D30C00E2990A /* CocoaColaKitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CocoaColaKitTests.swift; sourceTree = "<group>"; };
 		821BAC6C1D45D30C00E2990A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		821BAC761D45D61700E2990A /* NSLayoutConstraint+extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSLayoutConstraint+extensions.swift"; sourceTree = "<group>"; };
+		821BAC781D45D61700E2990A /* TileView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TileView.swift; sourceTree = "<group>"; };
+		821BAC791D45D61700E2990A /* TileViewLayout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TileViewLayout.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +77,8 @@
 		821BAC5D1D45D30C00E2990A /* CocoaColaKit */ = {
 			isa = PBXGroup;
 			children = (
+				821BAC751D45D61700E2990A /* Extensions */,
+				821BAC771D45D61700E2990A /* TileView */,
 				821BAC5E1D45D30C00E2990A /* CocoaColaKit.h */,
 				821BAC601D45D30C00E2990A /* Info.plist */,
 			);
@@ -84,6 +92,23 @@
 				821BAC6C1D45D30C00E2990A /* Info.plist */,
 			);
 			path = CocoaColaKitTests;
+			sourceTree = "<group>";
+		};
+		821BAC751D45D61700E2990A /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				821BAC761D45D61700E2990A /* NSLayoutConstraint+extensions.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		821BAC771D45D61700E2990A /* TileView */ = {
+			isa = PBXGroup;
+			children = (
+				821BAC781D45D61700E2990A /* TileView.swift */,
+				821BAC791D45D61700E2990A /* TileViewLayout.swift */,
+			);
+			path = TileView;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -200,6 +225,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				821BAC7B1D45D61700E2990A /* TileView.swift in Sources */,
+				821BAC7A1D45D61700E2990A /* NSLayoutConstraint+extensions.swift in Sources */,
+				821BAC7C1D45D61700E2990A /* TileViewLayout.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
