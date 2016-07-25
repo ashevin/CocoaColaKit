@@ -10,6 +10,7 @@ import UIKit
 
 extension NSLayoutConstraint {
 
+    @objc(adjustedConstraintWithMultiplier:)
     public func adjustedConstraint(multiplier: CGFloat) -> NSLayoutConstraint {
         let firstItem = self.firstItem
         let secondItem = self.secondItem
@@ -26,6 +27,7 @@ extension NSLayoutConstraint {
         return newConstraint
     }
 
+    @objc(adjustedConstraintWithFirstItem:)
     public func adjustedConstraint(firstItem: UIView) -> NSLayoutConstraint {
         let secondItem = self.secondItem
         let relation = self.relation
