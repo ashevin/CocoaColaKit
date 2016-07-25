@@ -29,7 +29,7 @@ public class TileView: UIView {
     }
 
     override public func setNeedsLayout() {
-        layout.adjustConstraints(animated: false)
+        layout.adjustConstraints(false)
 
         super.setNeedsLayout()
     }
@@ -81,7 +81,7 @@ public class TileView: UIView {
         - at:       The index of the tile to remove.  The index must be between `0` and `tiles.count - 1`.
         - animated: If true, the tile is removed from the TileView using an animation.
      */
-    public func removeTile(at: Int, animated: Bool = true) {
+    public func removeTile(_ at: Int, animated: Bool = true) {
         guard at < tiles.count && at >= 0 else { return }
 
         let tile = tiles[at]
@@ -91,7 +91,7 @@ public class TileView: UIView {
 
         layout.clearContraints(tile)
 
-        layout.adjustConstraints(animated: animated)
+        layout.adjustConstraints(animated)
     }
     
     /**
@@ -116,7 +116,7 @@ public class TileView: UIView {
         }
 
         layout.addSizeConstraints(tile)
-        layout.adjustConstraints(animated: animated)
+        layout.adjustConstraints(animated)
     }
 
     /**
@@ -155,7 +155,7 @@ public class TileView: UIView {
         tiles[a] = bTile
         tiles[b] = aTile
 
-        layout.adjustConstraints(animated: animated)
+        layout.adjustConstraints(animated)
     }
 
 }
