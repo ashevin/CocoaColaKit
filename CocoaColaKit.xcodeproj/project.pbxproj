@@ -420,6 +420,7 @@
 				821BAC711D45D30C00E2990A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		821BAC721D45D30C00E2990A /* Build configuration list for PBXNativeTarget "CocoaColaKitTests" */ = {
 			isa = XCConfigurationList;
@@ -428,6 +429,7 @@
 				821BAC741D45D30C00E2990A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

@@ -9,37 +9,52 @@
 import UIKit
 
 /**
- Layout strategy for a TileView.
+ Alignment for tiles as they are added to the TileView.
  */
-public enum TileViewLayoutType {
-    /// Tiles fill from right to left.  When the TileView's maximumColumns is reached, a new row is started.
-    case leftThenDown
+public enum RowAlignment {
+    /// Tiles are added right to left.
+    case right
 
-    /// Tiles fill from left to right.  When the TileView's maximumColumns is reached, a new row is started.
-    case rightThenDown
+    /// Tiles are added left to right.
+    case left
 
-    /// Tiles fill down.  When the TileView's maximumRows is reached, a new column is started to the right of the last column.
-    case downThenRight
-
-    /// Tiles fill down.  When the TileView's maximumRows is reached, a new column is started to the left of the last column.
-    case downThenLeft
+    /// Alignment is determined by the device's RTL settings.
+    case auto
 }
 
-public class TileViewLayout {
+/**
+ Determines how otherwise-empty space is filled.
+ */
+public enum FillDirection {
+    /// Tiles on a partially filled row will expand to fill the width of the TileView.
+    case horizontal
+
+    /// Tiles in a partially filled column will expand to fill the height of the TileView.
+    case vertical
+}
+
+internal class TileViewLayout {
 
     let maximumRows: Int
     let maximumColumns: Int
+    let alignment: RowAlignment
+    let fillDirection: FillDirection
     weak var tileView: TileView!
 
-    private var sizeConstraints: Dictionary<UIView, [NSLayoutConstraint]> = [:]
-    private var positionConstraints: Dictionary<UIView, [NSLayoutConstraint]> = [:]
+    private var sizeConstraints: Dictionary<Tile, [NSLayoutConstraint]> = [:]
+    private var positionConstraints: Dictionary<Tile, [NSLayoutConstraint]> = [:]
 
-    internal init(maximumRows: Int = 1, maximumColumns: Int = 1) {
+
+    //MARK: Public API
+
+    internal init(maximumRows: Int = 1, maximumColumns: Int = 1, alignment: RowAlignment, fillDirection: FillDirection) {
         self.maximumRows = maximumRows
         self.maximumColumns = maximumColumns
+        self.alignment = alignment
+        self.fillDirection = fillDirection
     }
 
-    internal func replaceTile(_ tile: UIView, with view: UIView, animated: Bool) {
+    internal func replaceTile(_ tile: Tile, with view: Tile, animated: Bool) {
         let tileSizeContraints: [NSLayoutConstraint] = sizeConstraints[tile]!
         sizeConstraints[view] = tileSizeContraints.map({ (constraint) -> NSLayoutConstraint in
             return constraint.adjustedConstraint(view)
@@ -65,11 +80,32 @@ public class TileViewLayout {
         }
     }
 
-    internal func clearContraints(_ tile: UIView) {
+    internal func positionForAnimation(_ tile: Tile, tiles: [Tile], inView view: UIView) {
+        let (row, column) = positionOfTile(tile, tiles: tiles)
+
+        let rowTiles = tilesForRow(row! > 0 ? row! - 1 : 0, tiles: tiles)!
+
+        var frame = CGRect()
+        let tvFrame = view.frame
+
+        frame.size.width = tvFrame.width / CGFloat(column!)
+        if column! > 0 {
+            frame.origin.x = rowTiles[column! - 1]!.frame.maxX
+        }
+
+        if row > 0 {
+            frame.origin.y = rowTiles[column!]!.frame.maxY
+        }
+
+        tile.frame = frame
+    }
+    
+    internal func clearContraints(_ tile: Tile) {
         sizeConstraints[tile] = nil
+        positionConstraints[tile] = nil
     }
 
-    internal func addSizeConstraints(_ tile: UIView) {
+    internal func addSizeConstraints(_ tile: Tile) {
         let constraints = [
             NSLayoutConstraint(item: tile, attribute: .width, relatedBy: .equal,
                                toItem: tileView, attribute: .width, multiplier: 1.0, constant: 0.0),
@@ -85,12 +121,9 @@ public class TileViewLayout {
         tileView.addConstraints(constraints)
     }
 
-    internal func adjustConstraints(_ animated: Bool) {
+    internal func layout(inView view: UIView, tiles: [Tile], animated: Bool) {
         let animationBlock = {
-            self.tileView.tiles.forEach({ (tile) in
-                self.adjustSizeConstraints(tile, at: self.tileView.tiles.index(of: tile)!)
-                self.adjustPositionConstraints(tile)
-            })
+            self.layout(inView: view, tiles: tiles)
 
             self.tileView.layoutIfNeeded()
         }
@@ -102,311 +135,193 @@ public class TileViewLayout {
             animationBlock()
         }
     }
+    
+    //MARK: Internal implementation
 
-    private func adjustSizeConstraints(_ tile: UIView, at: Int) {
-        let (row, column) = position(at)
-
-        let constraints = [
-            sizeConstraints[tile]![0]
-                .adjustedConstraint(multiplierForWidthConstraint(row)),
-            sizeConstraints[tile]![1]
-                .adjustedConstraint(multiplierForHeightConstraint(column))
-        ]
-
-        tileView.removeConstraints(sizeConstraints[tile]!)
-
-        sizeConstraints[tile] = constraints
-
-        tileView.addConstraints(sizeConstraints[tile]!)
-    }
-
-    private func adjustPositionConstraints(_ tile: UIView) {
-        if let constraints = positionConstraints[tile] {
-            tileView.removeConstraints(constraints)
+    private func effectiveAlignment() -> RowAlignment {
+        if alignment == .auto {
+            if #available(iOS 9.0, *) {
+                return UIView.userInterfaceLayoutDirection(for: tileView.semanticContentAttribute) == .leftToRight ? .left : .right
+            } else {
+                return UIApplication.shared().userInterfaceLayoutDirection == .leftToRight ? .left : .right
+            }
         }
 
-        let (secondItemTop, secondItemAttributeTop) = secondItemAndAttributeForTopConstraint(tile)
-        let (secondItemLeft, secondItemAttributeLeft) = secondItemAndAttributeForLeftConstraint(tile)
-
-        positionConstraints[tile] = [
-            NSLayoutConstraint(item: tile, attribute: .top, relatedBy: .equal,
-                               toItem: secondItemTop, attribute: secondItemAttributeTop,
-                               multiplier: 1.0, constant: 0.0),
-            NSLayoutConstraint(item: tile, attribute: .left, relatedBy: .equal,
-                               toItem: secondItemLeft, attribute: secondItemAttributeLeft,
-                               multiplier: 1.0, constant: 0.0)
-        ]
-
-        tileView.addConstraints(positionConstraints[tile]!)
-    }
-
-    private func secondItemAndAttributeForTopConstraint(_ tile: UIView) -> (UIView, NSLayoutAttribute) {
-        let (row, column) = position(tileView.tiles.index(of: tile)!)
-
-        let index: Int? = row == 0 ? nil : secondItemIndexForTopConstraint(row, column: column)
-        let view = index == nil ? tileView : tileView.tiles[index!]
-        let attribute: NSLayoutAttribute = row == 0 ? .top : .bottom
-
-        return (view, attribute)
-    }
-
-    private func secondItemAndAttributeForLeftConstraint(_ tile: UIView) -> (UIView, NSLayoutAttribute) {
-        let (index, attribute) = secondIndexAndAttributeForLeftConstraint(tile)
-        let view = index == nil ? tileView : tileView.tiles[index!]
-
-        return (view, attribute)
-    }
-
-    private func numberOfRows() -> Int {
-        let rows = tileView.tiles.count / maximumColumns
-
-        return rows + (rows * maximumColumns < tileView.tiles.count ? 1 : 0)
+        return alignment
     }
 
     private func numberOfColumns(_ count: Int) -> Int {
         let columns = count / maximumRows
 
-        return columns + (columns * maximumRows < count ? 1 : 0)
+        return columns + (count % maximumRows != 0 ? 1 : 0)
     }
 
-    private func numberOfColumnsForRow(_ row: Int) -> Int {
-        return min(maximumColumns, tileView.tiles.count - (row * maximumColumns))
+    private func indexOfTile(_ tile: Tile, tiles: [Tile?]) -> Int? {
+        for (index, item) in tiles.enumerated() {
+            if item == tile {
+                return index
+            }
+        }
+
+        return nil
     }
 
-    private func numberOfRowsForColumn(_ column: Int) -> Int {
-        return min(maximumRows, tileView.tiles.count - (column * maximumRows))
+    private func positionOfTile(_ tile: Tile, tiles: [Tile]) -> (Int?, Int?) {
+        for row in 0..<maximumRows {
+            guard let rowTiles = tilesForRow(row, tiles: tiles) else { break }
+
+            if let column = indexOfTile(tile, tiles: rowTiles) {
+                return (row, column)
+            }
+        }
+
+        return (nil, nil)
     }
 
-    internal func positionForAnimation(_ tile: UIView) {
-        fatalError("This method must be implemented")
-    }
+    private func numberOfRowsForColumn(_ column: Int, tiles: [Tile]) -> Int {
+        if fillDirection == .horizontal {
+            let rows = tiles.count / maximumColumns
 
-    private func position(_ ofIndex: Int) -> (Int, Int) {
-        fatalError("This method must be implemented")
-    }
+            return rows + (rows * maximumColumns < tiles.count ? 1 : 0)
+        }
 
-    private func secondItemIndexForTopConstraint(_ row: Int, column: Int) -> Int {
-        fatalError("This method must be implemented")
-    }
+        var rows = 1
+        var rowTiles = tilesForRow(rows, tiles: tiles)
 
-    private func secondIndexAndAttributeForLeftConstraint(_ tile: UIView) -> (Int?, NSLayoutAttribute) {
-        fatalError("This method must be implemented")
-    }
-
-    private func multiplierForWidthConstraint(_ row: Int) -> CGFloat {
-        fatalError("This method must be implemented")
-    }
-
-    private func multiplierForHeightConstraint(_ column: Int) -> CGFloat {
-        fatalError("This method must be implemented")
-    }
-
-}
-
-public class TileViewLayoutLeftThenDown: TileViewLayout {
-
-    internal override func position(_ ofIndex: Int) -> (Int, Int) {
-        let row: Int = {
-            var row = 0
-            var index = ofIndex
-            while (index >= maximumColumns) {
-                row += 1
-                index -= maximumColumns
+        for _ in 0..<maximumRows {
+            if rowTiles == nil || rowTiles![column] == nil {
+                return rows
             }
 
-            return row
-        }()
-
-        return (row, ofIndex - (row * maximumColumns))
+            rows += 1
+            rowTiles = tilesForRow(rows, tiles: tiles)
+        }
+        
+        return rows
     }
 
-    internal override func positionForAnimation(_ tile: UIView) {
-        let (row, _) = position(tileView.tiles.index(of: tile)!)
+    private func layout(inView view: UIView, tiles: [Tile]) {
+        for row in 0..<maximumRows {
+            guard let rowTiles = tilesForRow(row, tiles: tiles) else { break }
 
-        if row > 0 {
-            tile.frame.origin.y = tile.superview!.bounds.size.height
+            for (index, tile) in rowTiles.enumerated() {
+                guard let tile = tile else { continue }
+
+                if let constraints = positionConstraints[tile] {
+                    view.removeConstraints(constraints)
+                }
+
+                positionConstraints[tile] = [
+                    topConstraintForTile(tile, view: view, tiles: tiles, row: row, rowTiles: rowTiles),
+                    leftConstraintForTile(tile, view: view, tiles: tiles, row: row, index: index, rowTiles: rowTiles),
+                ]
+
+                view.addConstraints(positionConstraints[tile]!)
+
+                tileView.removeConstraints(sizeConstraints[tile]!)
+
+                sizeConstraints[tile] = sizeConstraintsForTile(tile, tiles: tiles, row: row, index: index, rowTiles: rowTiles)
+
+                tileView.addConstraints(sizeConstraints[tile]!)
+            }
         }
     }
 
-    private override func secondItemIndexForTopConstraint(_ row: Int, column: Int) -> Int {
-        return (row - 1) * maximumColumns + column
+    private func topConstraintForTile(_ tile: Tile, view: Tile, tiles: [Tile],
+                                      row: Int, rowTiles: [Tile?]) -> NSLayoutConstraint {
+        var topItem: Tile
+        var topAttribute: NSLayoutAttribute
+
+        if row == 0 {
+            topItem = view
+            topAttribute = .top
+        }
+        else {
+            let prevRowTiles = tilesForRow(row - 1, tiles: tiles)!
+
+            topItem = (effectiveAlignment() == .left ? prevRowTiles.first! : prevRowTiles.last!)!
+            topAttribute = .bottom
+        }
+
+        return NSLayoutConstraint(item: tile, attribute: .top, relatedBy: .equal,
+                                  toItem: topItem, attribute: topAttribute, multiplier: 1.0, constant: 0.0)
     }
 
-    internal override func secondIndexAndAttributeForLeftConstraint(_ tile: UIView) ->
-        (Int?, NSLayoutAttribute) {
-            let (row, column) = position(tileView.tiles.index(of: tile)!)
+    private func leftConstraintForTile(_ tile: Tile, view: Tile, tiles: [Tile],
+                                       row: Int, index: Int, rowTiles: [Tile?]) -> NSLayoutConstraint {
+        var item: Tile
 
-            if column + 1 >= numberOfColumnsForRow(row) {
-                return (nil, .left)
+        if effectiveAlignment() == .left {
+            if fillDirection == .horizontal {
+                item = index == 0 ? view : rowTiles[index - 1]!
             }
-            else {
-                return (row * maximumColumns + column + 1, .right)
+            else /* fillDirection == .vertical */ {
+                item = index == 0 ? view : rowTiles[index - 1]!
             }
-    }
-
-    internal override func multiplierForWidthConstraint(_ row: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfColumnsForRow(row))
-    }
-
-    internal override func multiplierForHeightConstraint(_ column: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfRows())
-    }
-
-}
-
-public class TileViewLayoutRightThenDown: TileViewLayout {
-
-    internal override func position(_ ofIndex: Int) -> (Int, Int) {
-        let row: Int = {
-            var row = 0
-            var index = ofIndex
-            while (index >= maximumColumns) {
-                row += 1
-                index -= maximumColumns
+        }
+        else /* alignment == .right */ {
+            if fillDirection == .horizontal {
+                item = index == 0 || rowTiles[index - 1] == nil ? view : rowTiles[index - 1]!
             }
+            else /* fillDirection == .vertical */ {
+                var effectiveRowTiles = row == 0 ? rowTiles : tilesForRow(0, tiles: tiles)
 
-            return row
-        }()
+                item = index == 0 || effectiveRowTiles![index - 1] == nil ? view : effectiveRowTiles![index - 1]!
+            }
+        }
 
-        return (row, ofIndex - (row * maximumColumns))
+        let attribute: NSLayoutAttribute = item == view ? .left : .right
+
+        return NSLayoutConstraint(item: tile, attribute: .left, relatedBy: .equal,
+                                  toItem: item, attribute: attribute, multiplier: 1.0, constant: 0.0)
     }
 
-    internal override func positionForAnimation(_ tile: UIView) {
-        let (row, _) = position(tileView.tiles.index(of: tile)!)
+    private func sizeConstraintsForTile(_ tile: Tile, tiles: [Tile],
+                                        row: Int, index: Int, rowTiles: [Tile?]) -> [NSLayoutConstraint] {
+        var tilesInRowCount: Int
+        if fillDirection == .horizontal {
+            let nonNilRowTiles = rowTiles.filter { return $0 != nil }
+            tilesInRowCount = nonNilRowTiles.count
+        }
+        else {
+            tilesInRowCount = rowTiles.count
+        }
 
-        tile.frame.origin.x = tile.superview!.bounds.size.width
+        return [
+            sizeConstraints[tile]![0].adjustedConstraint(1.0 / CGFloat(tilesInRowCount)),
+            sizeConstraints[tile]![1].adjustedConstraint(1.0 / CGFloat(numberOfRowsForColumn(index, tiles: tiles)))
+        ]
+    }
 
-        if row > 0 {
-            tile.frame.origin.y = tile.superview!.bounds.size.height
+    private func tilesForRow(_ row: Int, tiles: [Tile]) -> [Tile?]? {
+        var tilesForRow: [Tile?] = []
+
+        if fillDirection == .horizontal {
+            let startingIndex = row * maximumColumns
+
+            for index in startingIndex..<(startingIndex + maximumColumns) {
+                tilesForRow.append(index >= tiles.count ? nil : tiles[index])
+            }
+        }
+        else /* if fillDirection == .vertical */ {
+            guard row < maximumRows else { return nil }
+
+            let columnCount = numberOfColumns(tiles.count)
+            let startingIndex = row
+
+            for index in startingIndex..<(startingIndex + columnCount) {
+                let adjustedIndex = row + ((index - startingIndex) * maximumRows)
+
+                tilesForRow.append(adjustedIndex >= tiles.count ? nil : tiles[adjustedIndex])
+            }
+        }
+
+        if effectiveAlignment() == .left {
+            return tilesForRow
+        }
+        else /* if alignment == .right */ {
+            return tilesForRow.reversed()
         }
     }
 
-    private override func secondItemIndexForTopConstraint(_ row: Int, column: Int) -> Int {
-        return (row - 1) * maximumColumns + column
-    }
-
-    internal override func secondIndexAndAttributeForLeftConstraint(_ tile: UIView) ->
-        (Int?, NSLayoutAttribute) {
-            let (row, column) = position(tileView.tiles.index(of: tile)!)
-
-            if column == 0 {
-                return (nil, .left)
-            }
-            else {
-                return (row * maximumColumns + column - 1, .right)
-            }
-    }
-
-    internal override func multiplierForWidthConstraint(_ row: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfColumnsForRow(row))
-    }
-
-    internal override func multiplierForHeightConstraint(_ column: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfRows())
-    }
-
-}
-
-public class TileViewLayoutDownThenRight: TileViewLayout {
-
-    internal override func position(_ ofIndex: Int) -> (Int, Int) {
-        let column: Int = {
-            var column = 0
-            var index = ofIndex
-            while (index >= maximumRows) {
-                column += 1
-                index -= maximumRows
-            }
-
-            return column
-        }()
-
-        return (ofIndex - (column * maximumRows), column)
-    }
-
-    internal override func positionForAnimation(_ tile: UIView) {
-        let (_, column) = position(tileView.tiles.index(of: tile)!)
-
-        tile.frame.origin.y = tile.superview!.bounds.size.height
-
-        if column > 0 {
-            tile.frame.origin.x = tile.superview!.bounds.size.width
-        }
-    }
-
-    private override func secondItemIndexForTopConstraint(_ row: Int, column: Int) -> Int {
-        return column * maximumRows + row - 1
-    }
-
-    internal override func secondIndexAndAttributeForLeftConstraint(_ tile: UIView) ->
-        (Int?, NSLayoutAttribute) {
-            let (_, column) = position(tileView.tiles.index(of: tile)!)
-
-            if column == 0 {
-                return (nil, .left)
-            }
-            else {
-                return ((column - 1) * maximumRows, .right)
-            }
-    }
-
-    internal override func multiplierForWidthConstraint(_ row: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfColumns(tileView.tiles.count))
-    }
-
-    internal override func multiplierForHeightConstraint(_ column: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfRowsForColumn(column))
-    }
-
-}
-
-public class TileViewLayoutDownThenLeft: TileViewLayout {
-
-    internal override func position(_ ofIndex: Int) -> (Int, Int) {
-        let column: Int = {
-            var column = 0
-            var index = ofIndex
-            while (index >= maximumRows) {
-                column += 1
-                index -= maximumRows
-            }
-
-            return column
-        }()
-
-        return (ofIndex - (column * maximumRows), column)
-    }
-
-    internal override func positionForAnimation(_ tile: UIView) {
-        let (row, _) = position(tileView.tiles.index(of: tile)!)
-
-        if row > 0 {
-            tile.frame.origin.y = tile.superview!.bounds.size.height
-        }
-    }
-
-    private override func secondItemIndexForTopConstraint(_ row: Int, column: Int) -> Int {
-        return column * maximumRows + row - 1
-    }
-
-    internal override func secondIndexAndAttributeForLeftConstraint(_ tile: UIView) ->
-        (Int?, NSLayoutAttribute) {
-            let (_, column) = position(tileView.tiles.index(of: tile)!)
-
-            if column + 1 == numberOfColumns(tileView.tiles.count) {
-                return (nil, .left)
-            }
-            else {
-                return ((column + 1) * maximumRows, .right)
-            }
-    }
-    
-    internal override func multiplierForWidthConstraint(_ row: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfColumns(tileView.tiles.count))
-    }
-    
-    internal override func multiplierForHeightConstraint(_ column: Int) -> CGFloat {
-        return 1.0 / CGFloat(numberOfRowsForColumn(column))
-    }
-    
 }
