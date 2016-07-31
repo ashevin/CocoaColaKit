@@ -80,26 +80,28 @@ internal class TileViewLayout {
         }
     }
 
-    internal func positionForAnimation(_ tile: Tile, tiles: [Tile], inView view: UIView) {
-        let (row, column) = positionOfTile(tile, tiles: tiles)
+    internal func placeTileForAnimatedReplacement(_ tile: Tile, placeholder: Tile) {
+        tile.frame = placeholder.frame
 
-        let rowTiles = tilesForRow(row! > 0 ? row! - 1 : 0, tiles: tiles)!
+        let leftEdge = tile.frame.minX == 0
+        let rightEdge = tile.frame.maxX == tile.superview?.bounds.maxX
 
-        var frame = CGRect()
-        let tvFrame = view.frame
-
-        frame.size.width = tvFrame.width / CGFloat(column!)
-        if column! > 0 {
-            frame.origin.x = rowTiles[column! - 1]!.frame.maxX
+        if leftEdge && rightEdge {
+            tile.frame.origin.y -= tile.frame.height
+        }
+        else if leftEdge {
+            tile.frame.origin.x -= tile.frame.width
+        }
+        else if rightEdge {
+            tile.frame.origin.x = tile.frame.maxX
+        }
+        else {
+            tile.frame.origin.y -= tile.frame.height
         }
 
-        if row > 0 {
-            frame.origin.y = rowTiles[column!]!.frame.maxY
-        }
-
-        tile.frame = frame
+        tile.layoutIfNeeded()
     }
-    
+
     internal func clearContraints(_ tile: Tile) {
         sizeConstraints[tile] = nil
         positionConstraints[tile] = nil
@@ -121,7 +123,7 @@ internal class TileViewLayout {
         tileView.addConstraints(constraints)
     }
 
-    internal func layout(inView view: UIView, tiles: [Tile], animated: Bool) {
+    internal func layout(inView view: UIView, tiles: [Tile], animated: Bool, completion: (() -> ())? = nil) {
         let animationBlock = {
             self.layout(inView: view, tiles: tiles)
 
@@ -129,10 +131,15 @@ internal class TileViewLayout {
         }
 
         if animated {
-            UIView.animate(withDuration: 0.3, delay: 0.0, options: .curveEaseOut, animations: animationBlock, completion: nil)
+            UIView.animate(withDuration: 0.3, delay: 0.0, options: .curveEaseOut, animations: animationBlock) {
+                completed in
+                completion?()
+            }
         }
         else {
             animationBlock()
+
+            completion?()
         }
     }
     

@@ -102,15 +102,31 @@ public class TileView: UIView {
     public func insertTile(_ tile: Tile, at: Int, animated: Bool = true) {
         guard tiles.count < layout.maximumRows * layout.maximumColumns else { return }
 
+        if animated {
+            let placeholder = UIView()
+            placeholder.translatesAutoresizingMaskIntoConstraints = false
+            placeholder.backgroundColor = UIColor.clear()
+
+            tiles.insert(placeholder, at: at)
+
+            super.addSubview(placeholder)
+
+            layout.addSizeConstraints(placeholder)
+            layout.layout(inView: self, tiles: tiles, animated: animated) {
+                super.insertSubview(tile, at: 0)
+                self.layout.placeTileForAnimatedReplacement(tile, placeholder: placeholder)
+
+                self.replaceTile(placeholder, with: tile, animated: animated)
+            }
+
+            return
+        }
+
         tiles.insert(tile, at: at)
 
         tile.translatesAutoresizingMaskIntoConstraints = false
 
         super.addSubview(tile)
-
-        if (animated) {
-            layout.positionForAnimation(tile, tiles: tiles, inView: self)
-        }
 
         layout.addSizeConstraints(tile)
         layout.layout(inView: self, tiles: tiles, animated: animated)
@@ -131,7 +147,7 @@ public class TileView: UIView {
 
         tiles[index] = view
 
-        super.addSubview(view)
+        super.insertSubview(view, at: 0)
         tile.removeFromSuperview()
 
         layout.replaceTile(tile, with: view, animated: animated)
