@@ -16,6 +16,12 @@ public class TileView: UIView {
     /// The tiles.  Equivalent to `subviews`, except that tiles may be in a different order.
     private(set) public var tiles: [Tile] = []
 
+    public var maximumTileCount: Int {
+        get {
+            return layout.maximumRows * layout.maximumColumns
+        }
+    }
+
     let layout: TileViewLayout!
 
     //MARK: Subclassing
@@ -52,7 +58,7 @@ public class TileView: UIView {
     public init(maximumRows: Int = 1, maximumColumns: Int = 1,
                 alignment: RowAlignment = .left, fillDirection: FillDirection = .horizontal) {
 
-        self.layout = TileViewLayout(maximumRows: maximumRows, maximumColumns: maximumColumns,
+        self.layout = TileViewLayout(maximumRows: max(maximumRows, 1), maximumColumns: max(maximumColumns, 1),
                                      alignment: alignment, fillDirection: fillDirection)
 
         super.init(frame: CGRect())
@@ -86,7 +92,7 @@ public class TileView: UIView {
         tile.removeFromSuperview()
         tiles.remove(at: at)
 
-        layout.clearContraints(tile)
+        layout.clearPositionInformation(tile)
 
         layout.layout(inView: self, tiles: tiles, animated: animated)
     }
@@ -113,10 +119,16 @@ public class TileView: UIView {
 
             layout.addSizeConstraints(placeholder)
             layout.layout(inView: self, tiles: tiles, animated: animated) {
-                super.insertSubview(tile, at: 0)
+                tile.translatesAutoresizingMaskIntoConstraints = false
+
+                self.tiles[at] = tile
+
                 self.layout.placeTileForAnimatedReplacement(tile, placeholder: placeholder)
 
-                self.replaceTile(placeholder, with: tile, animated: animated)
+                super.insertSubview(tile, at: 0)
+                placeholder.removeFromSuperview()
+
+                self.layout.replaceTile(placeholder, with: tile, animated: animated)
             }
 
             return
@@ -147,7 +159,7 @@ public class TileView: UIView {
 
         tiles[index] = view
 
-        super.insertSubview(view, at: 0)
+        super.addSubview(view)
         tile.removeFromSuperview()
 
         layout.replaceTile(tile, with: view, animated: animated)
@@ -168,7 +180,20 @@ public class TileView: UIView {
         tiles[a] = bTile
         tiles[b] = aTile
 
+        layout.clearSizeAdjustments()
         layout.layout(inView: self, tiles: tiles, animated: animated)
     }
 
+    /**
+     Adjusts a tile's width or height by the specified amount.  The adjustment is made by adding the given amount to the current
+     frame.  All adjustments are cleared when `swap(:with:animated:)` is called.
+     
+     - Parameters:
+        - tile:         The tile whose size will be adjusted.
+        - width:        The amount by which to adjust the width.  Ignored when fillDirection is vertical.
+        - height:       The amount by which to adjust the height.  Ignored when fillDirection is horizontal.
+     */
+    public func adjustTile(_ tile: Tile, widthBy width: CGFloat = 0.0, heightBy height: CGFloat = 0.0) {
+        layout.adjustTile(tile, widthBy: width, heightBy: height)
+    }
 }

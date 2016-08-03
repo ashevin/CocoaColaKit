@@ -43,7 +43,7 @@ internal class TileViewLayout {
 
     private var sizeConstraints: Dictionary<Tile, [NSLayoutConstraint]> = [:]
     private var positionConstraints: Dictionary<Tile, [NSLayoutConstraint]> = [:]
-
+    private var sizeAdjustments: Dictionary<Tile, (CGFloat, CGFloat)> = [:]
 
     //MARK: Public API
 
@@ -102,9 +102,14 @@ internal class TileViewLayout {
         tile.layoutIfNeeded()
     }
 
-    internal func clearContraints(_ tile: Tile) {
+    internal func clearPositionInformation(_ tile: Tile) {
         sizeConstraints[tile] = nil
         positionConstraints[tile] = nil
+        sizeAdjustments[tile] = nil
+    }
+
+    internal func clearSizeAdjustments() {
+        sizeAdjustments.removeAll()
     }
 
     internal func addSizeConstraints(_ tile: Tile) {
@@ -121,6 +126,17 @@ internal class TileViewLayout {
         sizeConstraints[tile] = constraints
 
         tileView.addConstraints(constraints)
+    }
+
+    internal func adjustTile(_ tile: Tile, widthBy width: CGFloat = 0.0, heightBy height: CGFloat = 0.0) {
+        let currentAdjustment = sizeAdjustments[tile]
+
+        let currentWidth = currentAdjustment?.0 ?? 0.0
+        let currentHeight = currentAdjustment?.1 ?? 0.0
+
+        sizeAdjustments[tile] = (currentWidth + width, currentHeight + height)
+
+        layout(inView: tileView, tiles: tileView.tiles, animated: false)
     }
 
     internal func layout(inView view: UIView, tiles: [Tile], animated: Bool, completion: (() -> ())? = nil) {
@@ -163,28 +179,6 @@ internal class TileViewLayout {
         return columns + (count % maximumRows != 0 ? 1 : 0)
     }
 
-    private func indexOfTile(_ tile: Tile, tiles: [Tile?]) -> Int? {
-        for (index, item) in tiles.enumerated() {
-            if item == tile {
-                return index
-            }
-        }
-
-        return nil
-    }
-
-    private func positionOfTile(_ tile: Tile, tiles: [Tile]) -> (Int?, Int?) {
-        for row in 0..<maximumRows {
-            guard let rowTiles = tilesForRow(row, tiles: tiles) else { break }
-
-            if let column = indexOfTile(tile, tiles: rowTiles) {
-                return (row, column)
-            }
-        }
-
-        return (nil, nil)
-    }
-
     private func numberOfRowsForColumn(_ column: Int, tiles: [Tile]) -> Int {
         if fillDirection == .horizontal {
             let rows = tiles.count / maximumColumns
@@ -211,9 +205,7 @@ internal class TileViewLayout {
         for row in 0..<maximumRows {
             guard let rowTiles = tilesForRow(row, tiles: tiles) else { break }
 
-            for (index, tile) in rowTiles.enumerated() {
-                guard let tile = tile else { continue }
-
+            for case let (index, tile?) in rowTiles.enumerated() {
                 if let constraints = positionConstraints[tile] {
                     view.removeConstraints(constraints)
                 }
@@ -225,11 +217,11 @@ internal class TileViewLayout {
 
                 view.addConstraints(positionConstraints[tile]!)
 
-                tileView.removeConstraints(sizeConstraints[tile]!)
+                view.removeConstraints(sizeConstraints[tile]!)
 
                 sizeConstraints[tile] = sizeConstraintsForTile(tile, tiles: tiles, row: row, index: index, rowTiles: rowTiles)
 
-                tileView.addConstraints(sizeConstraints[tile]!)
+                view.addConstraints(sizeConstraints[tile]!)
             }
         }
     }
@@ -294,10 +286,20 @@ internal class TileViewLayout {
             tilesInRowCount = rowTiles.count
         }
 
-        return [
+        let constraints = [
             sizeConstraints[tile]![0].adjustedConstraint(1.0 / CGFloat(tilesInRowCount)),
             sizeConstraints[tile]![1].adjustedConstraint(1.0 / CGFloat(numberOfRowsForColumn(index, tiles: tiles)))
         ]
+
+        let adjustment = sizeAdjustments[tile]
+
+        let widthAdjustment = adjustment?.0 ?? 0.0
+        let heightAdjustment = adjustment?.1 ?? 0.0
+
+        constraints[0].constant = widthAdjustment
+        constraints[1].constant = heightAdjustment
+
+        return constraints
     }
 
     private func tilesForRow(_ row: Int, tiles: [Tile]) -> [Tile?]? {

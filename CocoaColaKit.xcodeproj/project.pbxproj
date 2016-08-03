@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		820A634E1D4EF01700C3C305 /* UIView+extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 820A634D1D4EF01700C3C305 /* UIView+extensions.swift */; };
 		821BAC5F1D45D30C00E2990A /* CocoaColaKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 821BAC5E1D45D30C00E2990A /* CocoaColaKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		821BAC661D45D30C00E2990A /* CocoaColaKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 821BAC5B1D45D30C00E2990A /* CocoaColaKit.framework */; };
 		821BAC6B1D45D30C00E2990A /* CocoaColaKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821BAC6A1D45D30C00E2990A /* CocoaColaKitTests.swift */; };
@@ -26,6 +27,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		820A634D1D4EF01700C3C305 /* UIView+extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "UIView+extensions.swift"; sourceTree = "<group>"; };
 		821BAC5B1D45D30C00E2990A /* CocoaColaKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CocoaColaKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		821BAC5E1D45D30C00E2990A /* CocoaColaKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CocoaColaKit.h; sourceTree = "<group>"; };
 		821BAC601D45D30C00E2990A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -98,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				821BAC761D45D61700E2990A /* NSLayoutConstraint+extensions.swift */,
+				820A634D1D4EF01700C3C305 /* UIView+extensions.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -175,12 +178,14 @@
 						CreatedOnToolsVersion = 8.0;
 						DevelopmentTeam = 4VM2T2M2T8;
 						DevelopmentTeamName = "Avraham Shevin";
+						LastSwiftMigration = 0800;
 						ProvisioningStyle = Automatic;
 					};
 					821BAC641D45D30C00E2990A = {
 						CreatedOnToolsVersion = 8.0;
 						DevelopmentTeam = 4VM2T2M2T8;
 						DevelopmentTeamName = "Avraham Shevin";
+						LastSwiftMigration = 0800;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -227,6 +232,7 @@
 			files = (
 				821BAC7B1D45D61700E2990A /* TileView.swift in Sources */,
 				821BAC7A1D45D61700E2990A /* NSLayoutConstraint+extensions.swift in Sources */,
+				820A634E1D4EF01700C3C305 /* UIView+extensions.swift in Sources */,
 				821BAC7C1D45D61700E2990A /* TileViewLayout.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
