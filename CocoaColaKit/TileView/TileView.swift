@@ -185,8 +185,7 @@ public class TileView: UIView {
     }
 
     /**
-     Adjusts a tile's width or height by the specified amount.  The adjustment is made by adding the given amount to the current
-     frame.  All adjustments are cleared when `swap(:with:animated:)` is called.
+     Adjusts a tile's width or height by the specified amount.  The adjustment is made by adding the given amount to the nominal size.  Adjustments are cumulative.  All adjustments are cleared when `swap(:with:animated:)` is called.
      
      - Parameters:
         - tile:         The tile whose size will be adjusted.

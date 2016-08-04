@@ -134,7 +134,8 @@ internal class TileViewLayout {
         let currentWidth = currentAdjustment?.0 ?? 0.0
         let currentHeight = currentAdjustment?.1 ?? 0.0
 
-        sizeAdjustments[tile] = (currentWidth + width, currentHeight + height)
+        sizeAdjustments[tile] = (currentWidth + (fillDirection == .horizontal ? width : 0.0),
+                                 currentHeight + (fillDirection == .vertical ? height : 0.0))
 
         layout(inView: tileView, tiles: tileView.tiles, animated: false)
     }
